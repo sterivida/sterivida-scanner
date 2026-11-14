@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16808a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SteriVida">
+<meta name="referrer" content="no-referrer">
+<title>SteriVida</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316808a'/%3E%3Cpath d='M20 34l8 8 16-18' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2316808a'/%3E%3Cpath d='M20 34l8 8 16-18' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+/* SteriVida — página do app (Vercel). Abre o app da clínica (Google Apps Script) aqui dentro, em tela cheia,
+   sem a faixa "Este aplicativo foi criado por um usuário do Google Apps Script". */
+html,body{margin:0;height:100%;background:#eef2f7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2733}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:transparent}
+#espera{position:fixed;inset:0;z-index:2;background:#eef2f7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:600;text-align:center;padding:24px}
+#espera i{width:34px;height:34px;border-radius:50%;border:4px solid #c9d6dc;border-top-color:#16808a;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+#espera a{color:#16808a;font-weight:500;font-size:.9rem}
+#erro{display:none;max-width:420px}#erro h2{color:#16808a;margin:0 0 8px;font-size:1.15rem}#erro p{color:#5d6b7c;font-weight:400;line-height:1.45}
+.sem-app #espera i,.sem-app #texto{display:none}.sem-app #erro{display:block}
+</style>
+</head>
+<body>
+<div id="espera"><i></i><span id="texto">Abrindo o app…</span><a id="direto" href="#" hidden>Demorando? Abrir o app direto</a>
+  <div id="erro"><h2>Link incompleto</h2><p>Abra o app pelo link que a clínica enviou (em Configurações › Ajuda e testes › Link do app).</p></div></div>
+<script>
+(function(){
+"use strict";
+var LS = "sv_app_exec";
+function lsGet(){ try{ return localStorage.getItem(LS) || ""; }catch(e){ return ""; } }
+function lsSet(v){ try{ localStorage.setItem(LS, v); }catch(e){} }
+// Só aceita endereço de app do Google Apps Script
+function execValido(t){
+  var u; try{ u = new URL(String(t).trim()); }catch(e){ return ""; }
+  if(u.protocol !== "https:" || u.hostname !== "script.google.com") return "";
+  if(!/^\/(a\/macros\/[^\/]+\/)?macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u.pathname)) return "";
+  return "https://script.google.com" + u.pathname;
+}
+var q = new URLSearchParams(location.search);
+var id = (q.get("id") || "").replace(/[^A-Za-z0-9_-]/g, "");
+var exec = id.length >= 20 ? "https://script.google.com/macros/s/" + id + "/exec" : execValido(q.get("app") || "");
+if(exec) lsSet(exec); else exec = execValido(lsGet());
+if(!exec){ document.body.classList.add("sem-app"); return; }
+// lote(s) vindos do leitor (?l=lote ou lote1,lote2): vão para dentro do app e saem do endereço (recarregar não registra de novo)
+var l = (q.get("l") || "").replace(/[^0-9A-Za-z\/\-,]/g, "").substring(0, 600);
+if(q.has("l")){ q.delete("l"); try{ history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q.toString() : "")); }catch(e){} }
+var src = exec + "?emb=1" + (l ? "&l=" + encodeURIComponent(l) : "");
+var f = document.createElement("iframe");
+f.src = src; f.title = "SteriVida";
+f.allow = "camera *; clipboard-write *; fullscreen *";
+f.addEventListener("load", function(){ document.getElementById("espera").style.display = "none"; });
+document.body.appendChild(f);
+var d = document.getElementById("direto");
+d.href = exec + (l ? "?l=" + encodeURIComponent(l) : "");
+setTimeout(function(){ d.hidden = false; }, 12000);
+})();
+</script>
+</body>
+</html>
